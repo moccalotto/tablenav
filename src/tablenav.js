@@ -146,7 +146,7 @@
                     return this.setCurrentLink($nextLinks.eq(this._linkIndex));
                 }
                 if ($nextLinks.eq(0).length) {
-                    return this.setCurrentLink($nextLinks.eq(0));
+                    return this.setCurrentLink($nextLinks.eq($nextLinks.length - 1));
                 }
                 nextRowIndex = (nextRowIndex + 1) % $allRows.length;
             }
@@ -170,7 +170,7 @@
                     return this.setCurrentLink($nextLinks.eq(this._linkIndex));
                 }
                 if ($nextLinks.eq(0).length) {
-                    return this.setCurrentLink($nextLinks.eq(0));
+                    return this.setCurrentLink($nextLinks.eq($nextLinks.length - 1));
                 }
                 nextRowIndex = (nextRowIndex + $allRows.length - 1) % $allRows.length;
             }
