@@ -1,40 +1,51 @@
 (function(root, factory) {
     if (typeof define === 'function' && define.amd) {
-        return define(['exports', 'jquery'], factory);
+
+        // AMD.
+        return define(['jquery'], factory);
+
+    } else if (typeof exports === 'object' && module.exports) {
+
+        // Node/CommonJS
+        module.exports = factory(require('jquery'));
+
+    } else if (typeof root.jQuery === 'undefined') {
+
+        // Browser globals: check that we have jQuery
+        throw new Error('jQuery must be included');
+
+    } else {
+        // Browser globals:
+        root.TableNav = factory(root.jQuery);
+
     }
-
-    if (typeof exports === 'object' && typeof exports.nodeName !== 'string') {
-
-        if (typeof jQuery === 'undefined' && typeof window === 'undefined')  {
-            return factory(exports, require('jquery')(root));
-        }
-
-        if (typeof jQuery === 'undefined') {
-            return factory(exports, require('jquery'));
-        }
-
-        return factory(exports, jQuery);
-
-    }
-    return factory(root.TableNav, root.jQuery);
-
-} (this, function(exports, $) {
+} (this, function($) {
 
     function TableNav(selector, options) {
-        var defaults = {
-            'activeRowClass' : 'info',
-            'activeLinkClass': 'btn-info',
-            'focusElements': '.btn:visible',
-        };
-        this.options = $.extend(defaults, options);
-        this.link = null;
-        this.row = null;
-        this.selector = selector;
-        this.linkIndex = 0;
+        if (!(this instanceof TableNav)) {
+            return new TableNav(selector, options);
+        }
+
+        this._selector = selector || TableNav.options.selector;
+        this._options = $.extend(TableNav.options, options);
+        this._link = null;
+        this._row = null;
+        this._linkIndex = 0;
+    };
+
+    TableNav.options = {
+        'activeRowClass' : 'info',
+        'activeLinkClass': 'btn-info',
+        'focusElements': '.btn:visible',
+        'selector' : 'table.tablenav'
+    };
+
+    $.fn.tablenav = function(options) {
+        return new TableNav(this, options);
     };
 
     TableNav.prototype.tables = function() {
-        var $tables = $(this.selector);
+        var $tables = $(this._selector);
 
         var $candidate = $tables.filter('table');
 
@@ -46,7 +57,7 @@
 
         // otherwise, assume that selector is the top level element,
         // and select all tables inside that top level element.
-        return $candidate.find('table');
+        return $tables.find('table');
     };
 
     TableNav.prototype.handleFocus = function() {
@@ -57,34 +68,39 @@
         return this;
     };
 
-    TableNav.prototype.refreshUi = function() {
-        // remove various UI feedback classes from tablerows and links
-        this.tables().find('.' + this.options.activeLinkClass + ',.' + this.options.activeRowClass)
-        .removeClass(this.options.activeRowClass)
-        .removeClass(this.options.activeLinkClass);
+    // remove all UI feedback classes from table rows and links
+    TableNav.prototype.clearUi = function() {
+        this.tables().find('.' + this._options.activeLinkClass + ',.' + this._options.activeRowClass)
+        .removeClass(this._options.activeRowClass)
+        .removeClass(this._options.activeLinkClass);
+    };
 
-        // add them again to the correct elements
-        if (this.link) {
-            this.currentLink().addClass(this.options.activeLinkClass).each(function(index, element_to_focus) {
+    TableNav.prototype.refreshUi = function() {
+        // Clear the UI
+        this.clearUi();
+
+        // add UI styling classes again,
+        if (this._link) {
+            this.currentLink().addClass(this._options.activeLinkClass).each(function(index, element_to_focus) {
                 // this .each is only run once, because the element set has size 1 or 0.
                 element_to_focus.focus();
             });
-            this.currentRow().addClass(this.options.activeRowClass);
+            this.currentRow().addClass(this._options.activeRowClass);
         }
 
         return this;
     };
 
     TableNav.prototype.firstLinkAvailable = function() {
-        return this.tables().find('tbody tr:first a:visible').eq(this.linkIndex);
+        return this.tables().find('tbody tr:first a:visible').eq(this._linkIndex);
     };
 
     TableNav.prototype.currentLink = function() {
-        if (this.link && this.link.parent().length) {
-            return this.link;
+        if (this._link && this._link.parent().length) {
+            return this._link;
         }
-        if (this.link && this.row && this.row.find('a:visible')) {
-            return this.row.find('a:visible:first');
+        if (this._link && this._row && this._row.find('a:visible')) {
+            return this._row.find('a:visible:first');
         }
         return this.firstLinkAvailable();
     };
@@ -98,35 +114,35 @@
     };
 
     TableNav.prototype.currentTableIndex = function() {
-        if (!this.link) {
+        if (!this._link) {
             return 0;
         }
         return this.tables().index(this.currentTable());
     };
 
     TableNav.prototype.gotoLink = function($link) {
-        this.link = $link.first();
-        this.row = this.currentRow();
-        this.linkIndex = this.link.index();
+        this._link = $link.first();
+        this._row = this.currentRow();
+        this._linkIndex = this._link.index();
         this.refreshUi();
         return this;
     };
 
     TableNav.prototype.gotoNextRow = function() {
         // search for next row in current table
-        if (!this.link) {
+        if (!this._link) {
             return this.gotoLink(this.currentLink());
         }
 
-        var $newLink = this.currentRow().next('tr').find('a:visible').eq(this.linkIndex);
+        var $newLink = this.currentRow().next('tr').find('a:visible').eq(this._linkIndex);
         if ($newLink.length) {
             return this.gotoLink($newLink);
         }
 
         // search for first row in next table
-        var $newLink = this.tables().eq(_currentTableIndex(this) + 1).find('tbody tr:first a:visible').eq(this.linkIndex);
+        var $newLink = this.tables().eq(this.currentTableIndex(this) + 1).find('tbody tr:first a:visible').eq(this._linkIndex);
         if ($newLink.length) {
-            this.linkIndex = 0;
+            this._linkIndex = 0;
             return this.gotoLink($newLink);
         }
 
@@ -136,27 +152,27 @@
 
     TableNav.prototype.gotoPrevRow = function() {
         // search for previous row in current table
-        var $newLink = this.currentRow().prev('tr').find('a:visible').eq(this.linkIndex);
+        var $newLink = this.currentRow().prev('tr').find('a:visible').eq(this._linkIndex);
         if ($newLink.length) {
             return this.gotoLink($newLink);
         }
 
         // search for last row in previous table
-        var $newLink = this.tables().eq(_currentTableIndex(this) - 1).find('tbody tr:last a:visible').eq(this.linkIndex);
+        var $newLink = this.tables().eq(this.currentTableIndex(this) - 1).find('tbody tr:last a:visible').eq(this._linkIndex);
         if ($newLink.length) {
-            this.linkIndex = 0;
+            this._linkIndex = 0;
             return this.gotoLink($newLink);
         }
 
         // search for last row in current table
-        var $newLink = this.currentTable().find('tr:last a:visible').eq(this.linkIndex);
+        var $newLink = this.currentTable().find('tr:last a:visible').eq(this._linkIndex);
         if ($newLink.length) {
             return this.gotoLink($newLink);
         }
 
         // Simply go to first available link if we have no "previous" links to go to.
         // Should never happen. So maybe we should log something?
-        this.linkIndex = 0;
+        this._linkIndex = 0;
         return this.gotoLink(this.firstLinkAvailable());
     };
 
@@ -193,12 +209,28 @@
     };
 
     TableNav.prototype.clickLink = function() {
-        if (!this.link) {
+        if (!this._link) {
             return false;
         }
 
-        this.link.click();
+        this._link.click();
     };
 
-    exports = TableNav;
+    TableNav.init = function() {
+        var mainNavigator = TableNav();
+
+        for (var method in mainNavigator) {
+            if (method.charAt(0) !== '_') {
+                TableNav[method] = (function(method) {
+                    return function() {
+                        return mainNavigator[method].apply(mainNavigator, arguments);
+                    };
+                } (method));
+            }
+        }
+    };
+
+    $(TableNav.init);
+
+    return TableNav;
 }));
