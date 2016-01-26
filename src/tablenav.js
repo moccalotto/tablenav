@@ -142,10 +142,10 @@
             for (var i = 0; i < $allRows.length; i++) {
                 var $nextRow = $allRows.eq(nextRowIndex);
                 var $nextLinks = $nextRow.find('a:visible');
-                if ($nextLinks.eq(this._linkIndex)) {
+                if ($nextLinks.eq(this._linkIndex).length) {
                     return this.setCurrentLink($nextLinks.eq(this._linkIndex));
                 }
-                if ($nextLinks.eq(0)) {
+                if ($nextLinks.eq(0).length) {
                     return this.setCurrentLink($nextLinks.eq(0));
                 }
                 nextRowIndex = (nextRowIndex + 1) % $allRows.length;
@@ -166,10 +166,10 @@
             for (var i = 0; i < $allRows.length; i++) {
                 var $nextRow = $allRows.eq(nextRowIndex);
                 var $nextLinks = $nextRow.find('a:visible');
-                if ($nextLinks.eq(this._linkIndex)) {
+                if ($nextLinks.eq(this._linkIndex).length) {
                     return this.setCurrentLink($nextLinks.eq(this._linkIndex));
                 }
-                if ($nextLinks.eq(0)) {
+                if ($nextLinks.eq(0).length) {
                     return this.setCurrentLink($nextLinks.eq(0));
                 }
                 nextRowIndex = (nextRowIndex + $allRows.length - 1) % $allRows.length;
