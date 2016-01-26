@@ -1,236 +1,250 @@
-(function(root, factory) {
+(function (global, factory) {
     if (typeof define === 'function' && define.amd) {
-
-        // AMD.
-        return define(['jquery'], factory);
-
-    } else if (typeof exports === 'object' && module.exports) {
-
-        // Node/CommonJS
-        module.exports = factory(require('jquery'));
-
-    } else if (typeof root.jQuery === 'undefined') {
-
-        // Browser globals: check that we have jQuery
-        throw new Error('jQuery must be included');
-
+        define(['exports', 'module'], factory);
+    } else if (typeof exports !== 'undefined' && typeof module !== 'undefined') {
+        factory(exports, module);
     } else {
-        // Browser globals:
-        root.TableNav = factory(root.jQuery);
-
+        var mod = {
+            exports: {}
+        };
+        factory(mod.exports, mod);
+        global.TableNav = mod.exports;
     }
-} (this, function($) {
+})(this, function (exports, module, _tooltip) {
+    'use strict';
 
-    function TableNav(selector, options) {
-        if (!(this instanceof TableNav)) {
-            return new TableNav(selector, options);
-        }
+    module.exports = (function($) {
+        function TableNav(selector, options) {
+            if (!(this instanceof TableNav)) {
+                return new TableNav(selector, options);
+            }
 
-        this._selector = selector || TableNav.options.selector;
-        this._options = $.extend(TableNav.options, options);
-        this._link = null;
-        this._row = null;
-        this._linkIndex = 0;
-    };
+            if (selector instanceof jQuery) {
+                selector = selector.selector;
+            }
 
-    TableNav.options = {
-        'activeRowClass' : 'info',
-        'activeLinkClass': 'btn-info',
-        'focusElements': '.btn:visible',
-        'selector' : 'table.tablenav'
-    };
+            this._selector = selector || TableNav.options.selector;
+            this._options = $.extend(TableNav.options, options);
+            this._link = null;
+            this._row = null;
+            this._linkIndex = 0;
+        };
 
-    $.fn.tablenav = function(options) {
-        return new TableNav(this, options);
-    };
+        TableNav.options = {
+            'activeRowClass' : 'info',
+            'activeLinkClass': 'btn-info',
+            'selector' : 'table.tablenav'
+        };
 
-    TableNav.prototype.tables = function() {
-        var $tables = $(this._selector);
+        $.fn.tablenav = function(options) {
+            return new TableNav(this, options);
+        };
 
-        var $candidate = $tables.filter('table');
+        TableNav.prototype.tables = function() {
+            var $tables = $(this._selector);
 
-        // if selector yielded a set of tables. Simply return that,
-        // ensuring that we ONLY have tables in the set.
-        if ($candidate.length) {
-            return $candidate;
-        }
+            var $candidate = $tables.filter('table');
 
-        // otherwise, assume that selector is the top level element,
-        // and select all tables inside that top level element.
-        return $tables.find('table');
-    };
+            // if selector yielded a set of tables. Simply return that,
+            // ensuring that we ONLY have tables in the set.
+            if ($candidate.length) {
+                return $candidate;
+            }
 
-    TableNav.prototype.handleFocus = function() {
-        var self = this;
-        this.tables().on('focusin', 'a:visible', function() {
-            self.gotoLink($(this));
-        });
-        return this;
-    };
+            // otherwise, assume that selector is the top level element,
+            // and select all tables inside that top level element.
+            return $tables.find('table');
+        };
 
-    // remove all UI feedback classes from table rows and links
-    TableNav.prototype.clearUi = function() {
-        this.tables().find('.' + this._options.activeLinkClass + ',.' + this._options.activeRowClass)
-        .removeClass(this._options.activeRowClass)
-        .removeClass(this._options.activeLinkClass);
-    };
-
-    TableNav.prototype.refreshUi = function() {
-        // Clear the UI
-        this.clearUi();
-
-        // add UI styling classes again,
-        if (this._link) {
-            this.currentLink().addClass(this._options.activeLinkClass).each(function(index, element_to_focus) {
-                // this .each is only run once, because the element set has size 1 or 0.
-                element_to_focus.focus();
+        TableNav.prototype.handleFocus = function() {
+            var self = this;
+            this.tables().on('focusin', 'a:visible', function() {
+                self.setCurrentLink($(this));
             });
-            this.currentRow().addClass(this._options.activeRowClass);
-        }
+            return this;
+        };
 
-        return this;
-    };
+        // remove all UI feedback classes from table rows and links
+        TableNav.prototype.clearUi = function() {
+            this.tables().find('.' + this._options.activeLinkClass + ',.' + this._options.activeRowClass)
+            .removeClass(this._options.activeRowClass)
+            .removeClass(this._options.activeLinkClass);
+        };
 
-    TableNav.prototype.firstLinkAvailable = function() {
-        return this.tables().find('tbody tr:first a:visible').eq(this._linkIndex);
-    };
+        TableNav.prototype.refreshUi = function() {
+            // Clear the UI
+            this.clearUi();
 
-    TableNav.prototype.currentLink = function() {
-        if (this._link && this._link.parent().length) {
-            return this._link;
-        }
-        if (this._link && this._row && this._row.find('a:visible')) {
-            return this._row.find('a:visible:first');
-        }
-        return this.firstLinkAvailable();
-    };
+            // add UI styling classes again,
+            if (this._link) {
+                this.currentLink().addClass(this._options.activeLinkClass).each(function(index, element_to_focus) {
+                    // this .each is only run once, because the element set has size 1 or 0.
+                    element_to_focus.focus();
+                });
+                this.currentRow().addClass(this._options.activeRowClass);
+            }
 
-    TableNav.prototype.currentRow = function() {
-        return this.currentLink().closest('tr');
-    };
+            return this;
+        };
 
-    TableNav.prototype.currentTable = function() {
-        return this.currentRow().closest('table');
-    };
+        TableNav.prototype.firstLinkAvailable = function() {
+            return this.tables().find('tbody tr:first').find('a:visible').eq(this._linkIndex);
+        };
 
-    TableNav.prototype.currentTableIndex = function() {
-        if (!this._link) {
-            return 0;
-        }
-        return this.tables().index(this.currentTable());
-    };
+        TableNav.prototype.currentLink = function() {
+            if (this._link && this._link.parent().length) {
+                return this._link;
+            }
+            if (this._link && this._row && this._row.find('a:visible')) {
+                return this._row.find('a:visible').first();
+            }
+            return this.firstLinkAvailable();
+        };
 
-    TableNav.prototype.gotoLink = function($link) {
-        this._link = $link.first();
-        this._row = this.currentRow();
-        this._linkIndex = this._link.index();
-        this.refreshUi();
-        return this;
-    };
+        TableNav.prototype.currentRow = function() {
+            return this.currentLink().closest('tr');
+        };
 
-    TableNav.prototype.gotoNextRow = function() {
-        // search for next row in current table
-        if (!this._link) {
-            return this.gotoLink(this.currentLink());
-        }
+        TableNav.prototype.currentTable = function() {
+            return this.currentRow().closest('table');
+        };
 
-        var $newLink = this.currentRow().next('tr').find('a:visible').eq(this._linkIndex);
-        if ($newLink.length) {
-            return this.gotoLink($newLink);
-        }
+        TableNav.prototype.currentTableIndex = function() {
+            if (!this._link) {
+                return 0;
+            }
+            return this.tables().index(this.currentTable());
+        };
 
-        // search for first row in next table
-        var $newLink = this.tables().eq(this.currentTableIndex(this) + 1).find('tbody tr:first a:visible').eq(this._linkIndex);
-        if ($newLink.length) {
-            this._linkIndex = 0;
-            return this.gotoLink($newLink);
-        }
+        TableNav.prototype.setCurrentLink = function($link) {
+            this._link = $link.first();
+            this._row = this.currentRow();
+            this._linkIndex = this._row.find('a:visible').index($link);
+            this.refreshUi();
+            return this;
+        };
 
-        // simply go to first available link if we have no "next" links to go to.
-        return this.gotoLink(this.firstLinkAvailable());
-    };
-
-    TableNav.prototype.gotoPrevRow = function() {
-        // search for previous row in current table
-        var $newLink = this.currentRow().prev('tr').find('a:visible').eq(this._linkIndex);
-        if ($newLink.length) {
-            return this.gotoLink($newLink);
-        }
-
-        // search for last row in previous table
-        var $newLink = this.tables().eq(this.currentTableIndex(this) - 1).find('tbody tr:last a:visible').eq(this._linkIndex);
-        if ($newLink.length) {
-            this._linkIndex = 0;
-            return this.gotoLink($newLink);
-        }
-
-        // search for last row in current table
-        var $newLink = this.currentTable().find('tr:last a:visible').eq(this._linkIndex);
-        if ($newLink.length) {
-            return this.gotoLink($newLink);
-        }
-
-        // Simply go to first available link if we have no "previous" links to go to.
-        // Should never happen. So maybe we should log something?
-        this._linkIndex = 0;
-        return this.gotoLink(this.firstLinkAvailable());
-    };
-
-    TableNav.prototype.gotoNextLink = function() {
-        // go to next link in current row
-        var $newLink = this.currentLink().next('a:visible');
-        if ($newLink.length) {
-            return this.gotoLink($newLink);
-        }
-
-        // go to first link in this Row
-        var $newLink = this.currentRow().find('a:visible:first');
-        if ($newLink.length) {
-            return this.gotoLink($newLink);
-        }
-
-        return this.gotoLink(this.firstLinkAvailable());
-    };
-
-    TableNav.prototype.gotoPrevLink = function() {
-        // go to previous link in current row
-        var $newLink = this.currentLink().prev('a:visible');
-        if ($newLink.length) {
-            return this.gotoLink($newLink);
-        }
-
-        // go to last link in this Row
-        var $newLink = this.currentRow().find('a:visible:last');
-        if ($newLink.length) {
-            return this.gotoLink($newLink);
-        }
-
-        return this.gotoLink(this.firstLinkAvailable());
-    };
-
-    TableNav.prototype.clickLink = function() {
-        if (!this._link) {
-            return false;
-        }
-
-        this._link.click();
-    };
-
-    TableNav.init = function() {
-        var mainNavigator = TableNav();
-
-        for (var method in mainNavigator) {
-            if (method.charAt(0) !== '_') {
-                TableNav[method] = (function(method) {
-                    return function() {
-                        return mainNavigator[method].apply(mainNavigator, arguments);
-                    };
-                } (method));
+        TableNav.prototype.startNavigation = function()
+        {
+            // search for next row in current table
+            if (!this._link) {
+                return this.setCurrentLink(this.currentLink());
             }
         }
-    };
 
-    $(TableNav.init);
+        TableNav.prototype.gotoNextRow = function() {
+            this.startNavigation();
 
-    return TableNav;
-}));
+            var $allRows = this.tables().find('tbody tr');
+            var currentRowIndex = $allRows.index(this.currentRow());
+            var nextRowIndex = (currentRowIndex + 1) % $allRows.length;
+
+            for (var i = 0; i < $allRows.length; i++) {
+                var $nextRow = $allRows.eq(nextRowIndex);
+                var $nextLinks = $nextRow.find('a:visible');
+                if ($nextLinks.eq(this._linkIndex)) {
+                    return this.setCurrentLink($nextLinks.eq(this._linkIndex));
+                }
+                if ($nextLinks.eq(0)) {
+                    return this.setCurrentLink($nextLinks.eq(0));
+                }
+                nextRowIndex = (nextRowIndex + 1) % $allRows.length;
+            }
+
+            // simply go to first available link if we have no "next" links to go to.
+            // SHOULD NOT HAPPEN
+            return this.setCurrentLink(this.firstLinkAvailable());
+        };
+
+        TableNav.prototype.gotoPrevRow = function() {
+            this.startNavigation();
+
+            var $allRows = this.tables().find('tbody tr');
+            var currentRowIndex = $allRows.index(this.currentRow());
+            var nextRowIndex = (currentRowIndex + $allRows.length - 1) % $allRows.length;
+
+            for (var i = 0; i < $allRows.length; i++) {
+                var $nextRow = $allRows.eq(nextRowIndex);
+                var $nextLinks = $nextRow.find('a:visible');
+                if ($nextLinks.eq(this._linkIndex)) {
+                    return this.setCurrentLink($nextLinks.eq(this._linkIndex));
+                }
+                if ($nextLinks.eq(0)) {
+                    return this.setCurrentLink($nextLinks.eq(0));
+                }
+                nextRowIndex = (nextRowIndex + $allRows.length - 1) % $allRows.length;
+            }
+
+            // simply go to first available link if we have no "next" links to go to.
+            // SHOULD NOT HAPPEN
+            return this.setCurrentLink(this.firstLinkAvailable());
+        };
+
+        TableNav.prototype.gotoNextLink = function() {
+            this.startNavigation();
+
+            var $linksInRow = this.currentRow().find('a:visible');
+            var currentLinkIndex = $linksInRow.index(this.currentLink());
+
+            if (!$linksInRow.length) {
+                return this.setCurrentLink(this.firstLinkAvailable());
+            }
+
+            var newLinkIndex = (currentLinkIndex + 1) % $linksInRow.length;
+            return this.setCurrentLink($linksInRow.eq(newLinkIndex));
+        };
+
+        TableNav.prototype.gotoPrevLink = function() {
+            this.startNavigation();
+
+            var $linksInRow = this.currentRow().find('a:visible');
+            var currentLinkIndex = $linksInRow.index(this.currentLink());
+
+            if (!$linksInRow.length) {
+                return this.setCurrentLink(this.firstLinkAvailable());
+            }
+
+            var newLinkIndex = (currentLinkIndex + $linksInRow.length - 1) % $linksInRow.length;
+            return this.setCurrentLink($linksInRow.eq(newLinkIndex));
+        };
+
+        TableNav.prototype.clickLink = function() {
+            if (!this._link) {
+                return false;
+            }
+
+            this._link.click();
+        };
+
+        var defaultInstance = null;
+
+        TableNav.initDefault = function() {
+            if (!defaultInstance) {
+                defaultInstance = TableNav();
+            }
+            for (var method in defaultInstance) {
+                if (method.charAt(0) !== '_') {
+                    TableNav[method] = (function(method) {
+                        return function() {
+                            return defaultInstance[method].apply(defaultInstance, arguments);
+                        };
+                    } (method));
+                }
+            }
+            return defaultInstance;
+        };
+
+        TableNav.stopDefault = function() {
+            if (!defaultInstance) {
+                return;
+            }
+
+            TableNav.clearUi();
+            defaultInstance = null;
+        }
+
+        $(TableNav.initDefault);
+
+        return TableNav.initDefault();
+    })(jQuery);
+});
