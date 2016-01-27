@@ -1,6 +1,6 @@
 {
   "name": "tablenav",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "UI and logic for navigating tables",
   "main": "src/tablenav.js",
   "repository": {
