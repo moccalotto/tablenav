@@ -1,0 +1,18 @@
+{
+    "name": "tablenav.js",
+    "version": "0.0.1",
+    "description": "UI and logic for navigating tables",
+    "main": "src/tablenav.js",
+    "repository": {
+        "type": "git",
+        "url": "git://github.com/moccalotto/tablenav.js.git"
+    },
+    "keywords": [
+        "tables",
+        "ui",
+        "navigation"
+    ],
+    "author": "Kim Ravn Hansen <moccalotto@gmail.com>",
+    "license": "MIT",
+    "readmeFilename": "README.md"
+}
