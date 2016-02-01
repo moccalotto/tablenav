@@ -61,6 +61,9 @@
             this.tables().on('focusin', 'a:visible', function() {
                 self.setCurrentLink($(this));
             });
+            this.tables().on('focusout', 'a:visible', function() {
+                self.clearUi();
+            });
             return this;
         };
 
